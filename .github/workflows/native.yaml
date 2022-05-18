@@ -1,0 +1,150 @@
+name: Native build and release
+
+
+on:
+  push:
+    tags:
+    - native-v*
+
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-22.04
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3.0.2
+      with:
+        persist-credentials: false
+
+    - name: Bootstrap
+      run: |
+        wget https://ziglang.org/download/0.9.1/zig-linux-x86_64-0.9.1.tar.xz
+        tar -xf zig-*.tar.xz
+        rm -f zig-*.tar.xz
+        ln -s "$(pwd)"/zig-*/zig /usr/local/bin/
+
+    - name: Build
+      run: native/build-linux.sh
+
+    - name: Archive
+      run: tar -cf- -C native humanpwd | xz -c9e - > humanpwd-linux.tar.xz
+
+    - name: Save
+      uses: actions/upload-artifact@v3.0.0
+      with:
+        name: release-linux
+        path: "*.tar.xz"
+
+
+  build-windows:
+    runs-on: windows-2022
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3.0.2
+      with:
+        persist-credentials: false
+
+    - name: Bootstrap
+      run: |
+        Invoke-WebRequest -Uri https://ziglang.org/download/0.9.1/zig-windows-x86_64-0.9.1.zip -OutFile zig.zip
+        Expand-Archive zig.zip -DestinationPath C:\zig
+        Remove-Item zig.zip
+        (Get-ChildItem C:\zig)[0].FullName >> $env:GITHUB_PATH
+
+    - name: Build
+      run: native\build-windows.ps1
+
+    - name: Archive
+      run: Compress-Archive -Path native\humanpwd.exe -DestinationPath humanpwd-windows.zip
+
+    - name: Save
+      uses: actions/upload-artifact@v3.0.0
+      with:
+        name: release-windows
+        path: "*.zip"
+
+
+  build-macos:
+    runs-on: macos-12
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3.0.2
+      with:
+        persist-credentials: false
+
+    - name: Bootstrap
+      run: |
+        wget https://ziglang.org/download/0.9.1/zig-macos-x86_64-0.9.1.tar.xz
+        tar -xf zig-*.tar.xz
+        rm -f zig-*.tar.xz
+        ln -s "$(pwd)"/zig-*/zig /usr/local/bin/
+
+    - name: Build x86_64
+      run: native/build-macos-x86_64.sh
+
+    - name: Archive x86_64
+      run: tar -cf- -C native humanpwd | xz -c9e - > humanpwd-macos-x86_64.tar.xz
+
+    - name: Build arm64
+      run: native/build-macos-arm64.sh
+
+    - name: Archive arm64
+      run: tar -cf- -C native humanpwd | xz -c9e - > humanpwd-macos-arm64.tar.xz
+
+    - name: Save
+      uses: actions/upload-artifact@v3.0.0
+      with:
+        name: release-macos
+        path: "*.tar.xz"
+
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/')
+
+    needs:
+    - build-linux
+    - build-windows
+    - build-macos
+
+    runs-on: ubuntu-22.04
+    steps:
+    - name: Version
+      id: version
+      run: |
+        echo ::set-output name=version::${GITHUB_REF#refs/tags/native-}
+
+    - name: Checkout
+      uses: actions/checkout@v3.0.2
+      with:
+        persist-credentials: false
+
+    - name: Notes
+      run: grep -Pzom1 "(?s)\n[##\s]*${{ steps.version.outputs.version }}.*?\n+.*?\K.*?(\n\n|$)" native/CHANGELOG.md | sed 's/[^[:print:]]//g' > RELEASE.md
+
+    - name: Download
+      uses: actions/download-artifact@v3.0.0
+      with:
+        path: artifacts
+
+    - name: Rename
+      run: |
+        ls -lah artifacts/release-linux/
+        echo artifacts/release-linux/*.tar.xz
+        mv artifacts/release-linux/*.tar.xz artifacts/release-linux/humanpwd-linux-${{ steps.version.outputs.version }}.tar.xz
+        mv artifacts/release-windows/*.zip artifacts/release-windows/humanpwd-windows-${{ steps.version.outputs.version }}.zip
+        mv artifacts/release-macos/*-x86_64.tar.xz artifacts/release-macos/humanpwd-macos-x86_64-${{ steps.version.outputs.version }}.tar.xz
+        mv artifacts/release-macos/*-arm64.tar.xz artifacts/release-macos/humanpwd-macos-arm64-${{ steps.version.outputs.version }}.tar.xz
+
+    - name: Release
+      uses: softprops/action-gh-release@v0.1.14
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        files: |
+          artifacts/release-linux/*.tar.xz
+          artifacts/release-windows/*.zip
+          artifacts/release-macos/*.tar.xz
+        body_path: RELEASE.md

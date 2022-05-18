@@ -1,0 +1,7 @@
+.*
+!.gitignore
+!/.github/
+
+/native/zig-cache/
+/native/humanpwd
+/native/humanpwd.exe
