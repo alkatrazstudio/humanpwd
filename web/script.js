@@ -57,7 +57,7 @@ const passesRootEl = document.getElementById('passes')
 
 passesRootEl.addEventListener('copy', event => {
     const selection = document.getSelection()
-    const sanitizedPass = selection.toString().trim()
+    const sanitizedPass = selection.toString().replace(/\s/g, '')
     event.clipboardData.setData('text/plain', sanitizedPass)
     event.preventDefault()
 })

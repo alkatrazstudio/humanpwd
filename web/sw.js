@@ -2,7 +2,7 @@
 // 🄯 2022, Alexey Parfenov <zxed@alkatrazstudio.net>
 
 const CACHE_PREFIX = 'humanpwd'
-const CACHE_VERSION = 0
+const CACHE_VERSION = 2
 const CACHE_NAME = `${CACHE_PREFIX}-${CACHE_VERSION}`
 
 const FILES_TO_CACHE = [
