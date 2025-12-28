@@ -52,9 +52,9 @@ jobs:
     - name: Bootstrap
       run: |
         Invoke-WebRequest -Uri https://ziglang.org/download/0.15.2/zig-x86_64-windows-0.15.2.zip -OutFile zig.zip
-        Expand-Archive zig.zip -DestinationPath C:\zig
+        Expand-Archive zig.zip -DestinationPath C:\
         Remove-Item zig.zip
-        "C:\zig" >> "$GITHUB_PATH"
+        "C:\zig-x86_64-windows-0.15.2" >> "$GITHUB_PATH"
 
     - name: Build
       run: native\build-windows.ps1
