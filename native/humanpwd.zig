@@ -8,16 +8,16 @@ const wordsPerPass = 4;
 const passCount: u3 = 7;
 
 pub fn main() anyerror!void {
-    const stdout = std.io.getStdOut().writer();
+    const stdout = std.fs.File.stdout();
     var wordIndexes: [wordsPerPass]u11 = undefined;
 
     var passesLeft = passCount;
     while (passesLeft > 0) : (passesLeft -= 1) {
-        for (wordIndexes) |*index, pos| {
+        for (&wordIndexes, 0..) |*index, pos| {
             index.* = while (true) {
-                var newIndex = std.crypto.random.int(u11);
+                const newIndex = std.crypto.random.int(u11);
                 var searchPos = pos;
-                var exists = while (searchPos > 0) {
+                const exists = while (searchPos > 0) {
                     searchPos -= 1;
                     if (wordIndexes[searchPos] == newIndex)
                         break true;
