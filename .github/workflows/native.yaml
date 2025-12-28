@@ -3,6 +3,9 @@ name: Native build and release
 
 on:
   push:
+    branches:
+    - master
+    - dev
     tags:
     - native-v*
 
