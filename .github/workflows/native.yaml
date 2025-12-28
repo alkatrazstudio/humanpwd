@@ -54,7 +54,7 @@ jobs:
         Invoke-WebRequest -Uri https://ziglang.org/download/0.15.2/zig-x86_64-windows-0.15.2.zip -OutFile zig.zip
         Expand-Archive zig.zip -DestinationPath C:\zig
         Remove-Item zig.zip
-        (Get-ChildItem C:\zig)[0].FullName >> "$GITHUB_PATH"
+        "C:\zig" >> "$GITHUB_PATH"
 
     - name: Build
       run: native\build-windows.ps1
